@@ -19,6 +19,7 @@ setup(
     long_description=open("README.rst").read(),
     entry_points={'console_scripts': [ 'doctr = doctr.__main__:main']},
     install_requires=[
+        'pyyaml',
         'requests',
         'cryptography',
     ],

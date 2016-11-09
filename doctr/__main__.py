@@ -26,6 +26,7 @@ import os
 import argparse
 import shlex
 import subprocess
+import yaml
 
 from textwrap import dedent
 
@@ -39,6 +40,7 @@ def get_parser():
     # This uses RawTextHelpFormatter so that the description (the docstring of
     # this module) is formatted correctly. Unfortunately, that means that
     # parser help is not text wrapped (but all other help is).
+    config = get_config()
     parser = argparse.ArgumentParser(description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter, epilog="""
 Run --help on the subcommands like 'doctr deploy --help' to see the
@@ -47,7 +49,10 @@ options available.
         )
     parser.add_argument('-V', '--version', action='version', version='doctr ' + __version__)
 
+    # doctr deploy --deploy-repo xonsh/xonsh-docs --gh-pages-docs dev
+
     subcommand = parser.add_subparsers(title='subcommand', dest='subcommand')
+
     deploy_parser = subcommand.add_parser('deploy', help="""Deploy the docs to GitHub from Travis.""")
     deploy_parser.set_defaults(func=deploy)
     deploy_parser.add_argument('--force', action='store_true', help="""Run the deploy command even
@@ -55,17 +60,17 @@ options available.
     deploy_parser.add_argument('--token', action='store_true', default=False,
         help="""Push to GitHub using a personal access token. Use this if you
         used 'doctr configure --token'.""")
-    deploy_parser.add_argument('--key-path', default='github_deploy_key.enc',
+    deploy_parser.add_argument('--key-path', default=config.get('key_path','github_deploy_key.enc'),
         help="""Path of the encrypted GitHub deploy key. The default is %(default)r.""")
     deploy_parser.add_argument('--built-docs', default=None,
         help="""Location of the built html documentation to be deployed to
         gh-pages. If not specified, Doctr will try to automatically detect build location""")
-    deploy_parser.add_argument('--gh-pages-docs', default='docs',
+    deploy_parser.add_argument('--gh-pages-docs', default=config.get('gh_pages_docs','docs'),
         help="""Directory to deploy the html documentation to on gh-pages. The
         default is %(default)r.""")
     deploy_parser.add_argument('--tmp-dir', default=None,
         help=argparse.SUPPRESS)
-    deploy_parser.add_argument('--deploy-repo', default=None, help="""Repo to
+    deploy_parser.add_argument('--deploy-repo', default=config.get('deploy_repo', None), help="""Repo to
         deploy the docs to. By default, it deploys to the repo Doctr is run from.""")
     deploy_parser.add_argument('--no-require-master', dest='require_master', action='store_false',
         default=True, help="""Allow docs to be pushed from a branch other than master""")
@@ -101,6 +106,16 @@ options available.
     The .enc extension is added to the file automatically.""")
 
     return parser
+
+def get_config():
+    """
+    This load some configuration from the `travis.yml`, file is present,
+    `doctr` key if present.
+    """
+    with open('.travis.yml') as travis_config_file:
+        travis_config = yaml.safe_load(travis_config_file.read())
+
+    return travis_config.get('doctr',{})
 
 def process_args(parser):
     args = parser.parse_args()
