@@ -145,9 +145,10 @@ def deploy(args, parser):
 
     current_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
     try:
+        branch_whitelist = ['master'] if args.require_master else []
         can_push = setup_GitHub_push(deploy_repo, auth_type='token' if args.token else
                              'deploy_key', full_key_path=args.key_path,
-                             require_master=args.require_master)
+                             branch_whitelist=branch_whitelist)
 
         if args.sync:
             built_docs = args.built_docs or find_sphinx_build_dir()
